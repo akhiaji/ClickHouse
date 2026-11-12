@@ -2402,6 +2402,14 @@ class SettingsRandomizer:
         #     [0, 1, 1024 * 1024, 16 * 1024 * 1024]
         # ),
         "use_iceberg_manifest_statistics": lambda: random.random() < 0.3,
+        # The theta-sketch NDV of `metadata.json` for the estimates above; join order and estimates only
+        "use_iceberg_table_statistics_ndv": lambda: random.random() < 0.3,
+        # Skipping Iceberg files and row groups by JOIN runtime filters, and delta-kernel-rs file
+        # skipping: both only skip data, so a changed answer is a wrong-results bug.
+        "use_join_runtime_filters_for_iceberg_pruning": lambda: random.random() > 0.05,
+        "delta_lake_enable_engine_predicate": lambda: random.random() > 0.05,
+        # Byte-range tasks cut on the row group offsets of the metadata for bucket-split cluster reads
+        "cluster_table_function_split_by_split_offsets": lambda: random.random() < 0.3,
         # New in 26.10 / 26.11 and on by default: now and then take the old path
         # Commented out: toggling lazy materialization for joins changes the plan (observable in EXPLAIN), breaking assertion tests.
         # "query_plan_lazy_materialization_for_join": lambda: random.random() > 0.05,
@@ -2474,6 +2482,9 @@ class SettingsRandomizer:
         # part pruning via statistics requires statistics to be enabled
         "use_statistics_for_part_pruning": "use_statistics",
         "use_iceberg_manifest_statistics": "use_statistics",
+        "use_iceberg_table_statistics_ndv": "use_iceberg_manifest_statistics",
+        # the file and row group skip needs a runtime filter to check against
+        "use_join_runtime_filters_for_iceberg_pruning": "enable_join_runtime_filters",
         # reverse-order FINAL reads only apply when reading in order at all
         "optimize_read_in_reverse_order_final": "optimize_read_in_order",
         # the top-k variant of the query condition cache needs the cache itself to be on
