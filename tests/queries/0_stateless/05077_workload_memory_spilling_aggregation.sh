@@ -17,7 +17,9 @@ trap cleanup EXIT
 
 # The per-operator thresholds are disabled, so the only spill trigger is the workload soft limit.
 # The adaptive aggregation stays enabled: its spill requests are served by writing the staged records.
-# The freeze thresholds stay at their defaults: a table that never freezes stages no records to write.
+# Without spilling, the adaptive aggregation of these keys peaks at about 220 MiB and the ordinary one at about
+# 1 GiB. The soft limit of 100 MiB stays well below both, so both queries spill.
+# The freeze thresholds below are pinned to their defaults so CI setting randomization does not change the staging.
 settings=(
   --workload "$workload"
   --max_rows_to_read 0
@@ -30,7 +32,7 @@ settings=(
 )
 $CLICKHOUSE_CLIENT --enable_adaptive_aggregator 1 -nm "${settings[@]}" --log_comment "$CLICKHOUSE_TEST_UNIQUE_NAME" -q "
 CREATE OR REPLACE RESOURCE memory (MEMORY RESERVATION);
-CREATE OR REPLACE WORKLOAD $workload SETTINGS max_memory = '4Gi', max_memory_before_spill = '200Mi';
+CREATE OR REPLACE WORKLOAD $workload SETTINGS max_memory = '4Gi', max_memory_before_spill = '100Mi';
 SELECT count(), sum(c) FROM (SELECT number AS k, count() AS c FROM numbers_mt(20e6) GROUP BY k) SETTINGS enable_adaptive_aggregator=1;
 SELECT count(), sum(c) FROM (SELECT number AS k, count() AS c FROM numbers_mt(20e6) GROUP BY k) SETTINGS enable_adaptive_aggregator=0;
 "
