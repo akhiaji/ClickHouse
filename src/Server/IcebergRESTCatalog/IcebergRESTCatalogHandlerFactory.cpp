@@ -49,17 +49,17 @@ ObjectStoragePtr createWarehouseObjectStorage([[maybe_unused]] IServer & server,
 
 }
 
-IcebergRESTCatalogHandlerFactory::IcebergRESTCatalogHandlerFactory(IServer & server_, IcebergRESTCatalogWarehousesPtr warehouses_)
+IcebergRESTCatalogHandlerFactory::IcebergRESTCatalogHandlerFactory(IServer & server_, IcebergRESTCatalogServicePtr service_)
     : log(getLogger(name))
     , server(server_)
-    , warehouses(std::move(warehouses_))
+    , service(std::move(service_))
 {
 }
 
 std::unique_ptr<HTTPRequestHandler> IcebergRESTCatalogHandlerFactory::createRequestHandler(const HTTPServerRequest & request)
 {
     LOG_TRACE(log, "HTTP request for {}. {}", name, request.toStringForLogging());
-    return std::make_unique<IcebergRESTCatalogHandler>(server, warehouses);
+    return std::make_unique<IcebergRESTCatalogHandler>(server, service);
 }
 
 HTTPRequestHandlerFactoryPtr createIcebergRESTCatalogHandlerFactory(IServer & server, const Poco::Util::AbstractConfiguration & config)
@@ -105,8 +105,9 @@ HTTPRequestHandlerFactoryPtr createIcebergRESTCatalogHandlerFactory(IServer & se
 
     IcebergRESTCatalogWarehouses::Map warehouses;
     warehouses.emplace(warehouse_name, std::move(warehouse_ptr));
-    return std::make_shared<IcebergRESTCatalogHandlerFactory>(
-        server, std::make_shared<const IcebergRESTCatalogWarehouses>(std::move(warehouses)));
+    auto service = std::make_shared<const IcebergRESTCatalogService>(
+        server.context(), std::make_shared<const IcebergRESTCatalogWarehouses>(std::move(warehouses)));
+    return std::make_shared<IcebergRESTCatalogHandlerFactory>(server, std::move(service));
 }
 
 }
